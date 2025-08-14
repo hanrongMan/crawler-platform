@@ -7,6 +7,7 @@ import { Globe, AlertTriangle, LogOut, User } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { JobResults } from "@/components/job-results"
+import { UserGuide } from "@/components/user-guide"
 import { SupabaseConnectionTest } from "@/components/supabase-connection-test"
 import { EnhancedScrapingForm } from "@/components/enhanced-scraping-form"
 import { ApiAnalysisTool } from "@/components/api-analysis-tool"
@@ -220,9 +221,10 @@ export default function HomePage() {
                 <User className="h-4 w-4" />
                 <span>{user?.email}</span>
               </div>
+              <UserGuide />
               <Button variant="outline" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
-                登出
+                退出
               </Button>
             </div>
           </div>

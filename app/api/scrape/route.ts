@@ -66,11 +66,9 @@ export async function POST(request: NextRequest) {
         if (!enriched.headers.Referer) enriched.headers.Referer = targetUrl
       } catch {}
 
-      // 常见站点的默认 dataPath 与字段映射（如果用户未配置）
-      if (!enriched.dataPath || !enriched.mapping) {
-        // 优先兼容你提供的响应：data.positionList[*]
-        const defaultPath = "data.positionList"
-        if (!enriched.dataPath) enriched.dataPath = defaultPath
+      // 站点默认 dataPath 与字段映射（如果用户未配置）
+      if (websiteType === "tencent") {
+        if (!enriched.dataPath) enriched.dataPath = "data.positionList"
         if (!enriched.mapping) {
           enriched.mapping = {
             title: "positionTitle",
@@ -86,6 +84,38 @@ export async function POST(request: NextRequest) {
             original_url: undefined as any,
           }
         }
+      } else if (websiteType === "bytedance") {
+        // ByteDance 返回结构示例：data.job_post_list[*]
+        if (!enriched.dataPath) enriched.dataPath = "data.job_post_list"
+        if (!enriched.mapping) {
+          enriched.mapping = {
+            title: "title",
+            department: "job_category.name",
+            location: "city_info.name",
+            job_type: "recruit_type.name",
+            experience_level: "recruit_type.parent.name",
+            description: "description",
+            requirements: "requirement",
+            salary_min: undefined as any,
+            salary_max: undefined as any,
+            external_job_id: "id",
+            original_url: undefined as any,
+          }
+        }
+        // 默认分页 body：limit/offset
+        if (!enriched.body) {
+          enriched.body = { keyword: "", limit: 20, offset: 0 }
+        } else {
+          if (typeof enriched.body.limit !== "number") enriched.body.limit = 20
+          if (typeof enriched.body.offset !== "number") enriched.body.offset = 0
+        }
+        // 额外头部
+        enriched.headers = enriched.headers || {}
+        if (!enriched.headers["portal-channel"]) enriched.headers["portal-channel"] = "office"
+        if (!enriched.headers["portal-platform"]) enriched.headers["portal-platform"] = "pc"
+      } else {
+        // 其他站点若未配置，保持一个通用兜底
+        if (!enriched.dataPath) enriched.dataPath = "data.list"
       }
 
       const universal = ScraperFactory.createUniversalScraper(enriched, (line: string) => appendLog(user.id, line))
@@ -138,6 +168,10 @@ export async function POST(request: NextRequest) {
         if (!originalUrl && websiteType === "tencent" && (job.external_job_id || job.id)) {
           const pid = job.external_job_id || job.id
           originalUrl = `https://join.qq.com/post.html?id=${pid}`
+        } else if (!originalUrl && websiteType === "bytedance" && (job.external_job_id || job.id)) {
+          const bid = job.external_job_id || job.id
+          // 经验招聘详情页路径
+          originalUrl = `https://jobs.bytedance.com/experienced/position/${bid}`
         }
 
         const normalized = {

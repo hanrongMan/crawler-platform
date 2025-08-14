@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Database, Play, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { useFormValidation, FormFieldError, commonValidationRules } from "./form-validation"
-import { UserGuide } from "./user-guide"
 import { useScrapingContext } from "@/lib/context/scraping-context"
 import { ScraperFactory } from "@/lib/scraper/scraper-factory"
 
@@ -261,7 +260,7 @@ export function EnhancedScrapingForm({ onSubmit, connectionVerified, onConnectio
 						</CardTitle>
 						<CardDescription className="text-blue-100">选择目标网站并开始爬取招聘数据</CardDescription>
 					</div>
-					<UserGuide />
+					{/* 使用指南按钮移至页面头部（退出前方），此处移除 */}
 				</div>
 			</CardHeader>
 			<CardContent className="p-6">

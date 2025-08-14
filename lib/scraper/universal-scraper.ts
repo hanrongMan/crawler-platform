@@ -176,6 +176,10 @@ export class UniversalScraper extends BaseScraper {
         if (body.pageSize !== undefined && typeof body.pageSize !== "number") {
           body.pageSize = Number.parseInt(String(body.pageSize)) || 20
         }
+        // 若有 limit/offset 的风格，确保同步更新 offset
+        if (body.limit !== undefined && body.offset !== undefined) {
+          body.offset = (page - 1) * body.limit
+        }
       }
 
       const requestOptions: RequestInit = {

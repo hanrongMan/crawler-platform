@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { MapPin, Building, Clock, DollarSign, ExternalLink, Users } from "lucide-react"
 
 interface JobData {
@@ -28,19 +29,31 @@ interface JobData {
 
 export function JobResults({ jobs: initialJobs = [] as JobData[] }) {
   const [jobs, setJobs] = useState<JobData[]>(initialJobs)
+  const [totalCount, setTotalCount] = useState<number>(0)
+  const [sourceWebsiteCount, setSourceWebsiteCount] = useState<number>(0)
+  const [query, setQuery] = useState<string>("")
+  const [searchVersion, setSearchVersion] = useState<number>(0)
+  const [isComposing, setIsComposing] = useState<boolean>(false)
 
   useEffect(() => {
     let aborted = false
-    ;(async () => {
+    const fetchData = async (q?: string) => {
       try {
-        const res = await fetch("/api/jobs")
+        const url = q && q.trim() ? `/api/jobs?q=${encodeURIComponent(q.trim())}` : "/api/jobs"
+        const res = await fetch(url)
         if (!res.ok) return
         const data = await res.json()
-        if (!aborted && Array.isArray(data.jobs)) setJobs(data.jobs)
+        if (aborted) return
+        if (Array.isArray(data.jobs)) setJobs(data.jobs)
+        if (typeof data.totalCount === "number") setTotalCount(data.totalCount)
+        if (typeof data.sourceWebsiteCount === "number") setSourceWebsiteCount(data.sourceWebsiteCount)
       } catch {}
-    })()
+    }
+    fetchData(query)
     return () => { aborted = true }
-  }, [])
+  }, [query, searchVersion])
+
+  const filteredJobs = useMemo(() => jobs, [jobs])
   if (jobs.length === 0) {
     return (
       <Card className="border-gray-200">
@@ -108,14 +121,14 @@ export function JobResults({ jobs: initialJobs = [] as JobData[] }) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{jobs.length}</div>
+              <div className="text-3xl font-bold text-blue-600">{totalCount}</div>
               <div className="text-sm text-gray-600">总职位数</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-cyan-600">
-                {new Set(jobs.map((job) => job.company_name)).size}
+                {sourceWebsiteCount}
               </div>
-              <div className="text-sm text-gray-600">公司数量</div>
+              <div className="text-sm text-gray-600">网站数量</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-green-600">{new Set(jobs.map((job) => job.location)).size}</div>
@@ -125,9 +138,36 @@ export function JobResults({ jobs: initialJobs = [] as JobData[] }) {
         </CardContent>
       </Card>
 
+      {/* Search */}
+      <Card className="border-gray-200">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <Input
+              placeholder="输入关键字，模糊搜索岗位（标题/公司/部门/城市/经验/职位类型/来源/描述/要求/福利）"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  setSearchVersion((v) => v + 1)
+                }
+              }}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => {
+                setIsComposing(false)
+                setSearchVersion((v) => v + 1)
+              }}
+              className="text-sm"
+            />
+            <Button size="sm" variant="secondary" onClick={() => setSearchVersion((v) => v + 1)}>搜索</Button>
+            <div className="text-xs text-gray-500">显示 {filteredJobs.length} / {totalCount}</div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Job List */}
       <div className="space-y-4">
-        {jobs.map((job, index) => (
+        {filteredJobs.map((job, index) => (
           <Card key={index} className="border-gray-200 hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">

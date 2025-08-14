@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -26,17 +26,26 @@ export function ApiAnalysisTool() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveResult, setSaveResult] = useState<any | null>(null)
 
-  const supportedWebsites = [
-    { value: "tencent", label: "腾讯招聘" },
-    { value: "bytedance", label: "字节跳动招聘" },
-    { value: "alibaba", label: "阿里招聘" },
-  ]
+  const [siteOptions, setSiteOptions] = useState<Array<{ value: string; label: string; base_url: string }>>([])
 
-  const defaultApiBySite: Record<string, string> = {
-    tencent: "https://join.qq.com/post.html?page=1",
-    bytedance: "https://jobs.bytedance.com/experienced/position?page=1",
-    alibaba: "https://talent-holding.alibaba.com/off-campus/position-list?lang=zh",
-  }
+  useEffect(() => {
+    let aborted = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/scraping-configs")
+        if (!res.ok) return
+        const data = await res.json()
+        if (aborted) return
+        const opts = (data.configs || []).map((c: any) => ({
+          value: c.website_name,
+          label: c.display_name,
+          base_url: c.base_url,
+        }))
+        setSiteOptions(opts)
+      } catch {}
+    })()
+    return () => { aborted = true }
+  }, [])
 
   const analysisSteps = [
     "解析结构",
@@ -52,10 +61,8 @@ export function ApiAnalysisTool() {
     setCompletedSteps([])
     setAnalysisProgress(0)
 
-    const ts = Date.now().toString()
-    const urlTpl = defaultApiBySite[v] || ""
-    const url = urlTpl ? urlTpl.replace("{ts}", ts) : ""
-    setConfiguredUrl(url)
+    const found = siteOptions.find((s) => s.value === v)
+    setConfiguredUrl(found?.base_url || "")
   }
 
   const handleAnalyzeWebsite = async () => {
@@ -76,15 +83,15 @@ export function ApiAnalysisTool() {
     let derivedUrl = configuredUrl
     const ts = Date.now().toString()
     if (websiteType === "tencent") derivedUrl = `https://join.qq.com/api/v1/position/searchPosition?timestamp=${ts}`
-    if (websiteType === "bytedance") derivedUrl = `https://jobs.bytedance.com/api/v1/search/job?ts=${ts}`
+    if (websiteType === "bytedance") derivedUrl = `https://jobs.bytedance.com/api/v1/search/job/posts?portal_type=2&portal_entrance=1&_signature={signature}`
     if (websiteType === "alibaba") derivedUrl = `https://talent-holding.alibaba.com/api/position/list?ts=${ts}`
 
-    const method = websiteType === "tencent" || websiteType === "alibaba" ? "POST" : "GET"
+    const method = websiteType === "tencent" || websiteType === "alibaba" || websiteType === "bytedance" ? "POST" : "GET"
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json;charset=UTF-8",
       Accept: "application/json, text/plain, */*",
-      "Accept-Language": "zh,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
       "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
     }
 
@@ -94,7 +101,31 @@ export function ApiAnalysisTool() {
       headers["Referer"] = configuredUrl
     } catch {}
 
-    const body = websiteType === "tencent" ? { pageIndex: 1, pageSize: 20 } : websiteType === "alibaba" ? { page: 1, pageSize: 20 } : undefined
+    const body = websiteType === "tencent"
+      ? { pageIndex: 1, pageSize: 20 }
+      : websiteType === "alibaba"
+      ? { page: 1, pageSize: 20 }
+      : websiteType === "bytedance"
+      ? {
+          keyword: "",
+          limit: 20,
+          offset: 0,
+          job_category_id_list: [],
+          tag_id_list: [],
+          location_code_list: [],
+          subject_id_list: [],
+          recruitment_id_list: [],
+          job_function_id_list: [],
+          storefront_id_list: [],
+        }
+      : undefined
+
+    // ByteDance 额外头部
+    if (websiteType === "bytedance") {
+      headers["portal-channel"] = "office"
+      headers["portal-platform"] = "pc"
+      // Origin/Referer 已在下方统一设置
+    }
 
     const req = body ? { pageUrl: configuredUrl, url: derivedUrl, method, headers, body } : { pageUrl: configuredUrl, url: derivedUrl, method, headers }
     setConstructedRequest(req)
@@ -225,7 +256,7 @@ export function ApiAnalysisTool() {
                   <SelectValue placeholder="选择要分析的招聘网站" />
                 </SelectTrigger>
                 <SelectContent>
-                  {supportedWebsites.map((w) => (
+                  {siteOptions.map((w) => (
                     <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
                   ))}
                 </SelectContent>
