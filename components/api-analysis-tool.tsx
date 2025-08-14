@@ -209,7 +209,7 @@ export function ApiAnalysisTool() {
           <FileText className="h-5 w-5 text-blue-600" />
           API 分析工具
         </CardTitle>
-        <p className="text-sm text-gray-600">分析招聘网站的网络请求，生成可用的请求模板</p>
+        <p className="text-sm text-gray-600">分析网站的网络请求，生成可用的请求模板</p>
       </CardHeader>
       <CardContent className="space-y-6">
         <Tabs defaultValue="analysis" className="w-full">
@@ -222,7 +222,7 @@ export function ApiAnalysisTool() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                由于 CORS 限制，我们无法直接访问其他网站的 API。请按照以下步骤手动分析网络请求。
+                请参考以下步骤手动分析网络请求，自动分析目前只验证了个别网站。
               </AlertDescription>
             </Alert>
 
@@ -234,7 +234,7 @@ export function ApiAnalysisTool() {
                 <li>在网站上搜索职位或翻页</li>
                 <li>找到返回职位数据的API请求(通常是XHR类型)</li>
                 <li>右键该请求 → 复制→ 复制为cURL或复制响应</li>
-                <li>将数据粘贴到下方文本框</li>
+                <li>将数据粘贴到 自动分析 tab 里面的构造出请求 文本框中，点击测试 API 按钮，如果测试成功，则点击保存爬取模式</li>
               </ol>
             </div>
 
@@ -250,7 +250,7 @@ export function ApiAnalysisTool() {
 
           <TabsContent value="analysis" className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="website-select">选择招聘网站</Label>
+              <Label htmlFor="website-select">选择分析网站</Label>
               <Select onValueChange={handleWebsiteChange} value={websiteType}>
                 <SelectTrigger>
                   <SelectValue placeholder="选择要分析的招聘网站" />

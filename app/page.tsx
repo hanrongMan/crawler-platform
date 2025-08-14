@@ -237,7 +237,7 @@ export default function HomePage() {
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">分析页面&爬取数据&存入supabase</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              用爬取腾讯招聘官网，提取职位信息并存储到您的数据库，作为示例
+              用爬取腾讯招聘官网&字节招聘官网，提取职位信息并存储到您的数据库，作为示例
             </p>
           </div>
 

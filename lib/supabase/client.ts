@@ -140,7 +140,7 @@ export async function testSupabaseConnection(
     const supabase = createSupabaseClient(supabaseUrl, supabaseKey)
 
     // 尝试执行一个简单的查询来测试连接
-    const { data, error } = await supabase.from("companies").select("count").limit(1)
+    const { data, error } = await supabase.from("scraping_configs").select("count").limit(1)
 
     if (error) {
       return {

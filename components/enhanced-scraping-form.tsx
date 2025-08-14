@@ -120,12 +120,6 @@ export function EnhancedScrapingForm({ onSubmit, connectionVerified, onConnectio
 		loadSavedConfigs()
 	}, [])
 
-	const supportedWebsites = [
-		{ value: "tencent", label: "腾讯招聘", url: "https://careers.tencent.com/", description: "使用API接口获取数据" },
-		{ value: "bytedance", label: "字节跳动招聘", url: "https://jobs.bytedance.com/experienced/position", description: "使用API接口获取数据" },
-		{ value: "alibaba", label: "阿里招聘", url: "https://talent-holding.alibaba.com/off-campus/position-list?lang=zh", description: "使用API接口获取数据" },
-	]
-
 	// 自动检测网站类型
 	useEffect(() => {
 		if (formData.targetUrl && !formData.websiteType) {
@@ -155,15 +149,6 @@ export function EnhancedScrapingForm({ onSubmit, connectionVerified, onConnectio
 			targetUrl: cfg?.target_url || cfg?.api_config?.url || prev.targetUrl,
 		}))
 		handleFieldChange("targetUrl", cfg?.target_url || cfg?.api_config?.url || "")
-	}
-
-	// 备用：选择内置网站
-	const handleUrlSelect = (websiteValue: string) => {
-		const website = supportedWebsites.find((w) => w.value === websiteValue)
-		if (website) {
-			setFormData((prev) => ({ ...prev, targetUrl: website.url, websiteType: websiteValue }))
-			handleFieldChange("targetUrl", website.url)
-		}
 	}
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -235,7 +220,7 @@ export function EnhancedScrapingForm({ onSubmit, connectionVerified, onConnectio
 				websiteType: formData.websiteType,
 				apiConfig: selectedConfig?.api_config,
 			})
-			setLogs((prev) => [...prev, sseOk ? "已连接日志(SSE)..." : "SSE 不可用，使用轮询获取日志..."])
+			setLogs((prev) => [...prev, sseOk ? "end..." : "end..."])
 		} catch (error) {
 			setSubmitError(error instanceof Error ? error.message : "提交失败，请重试")
 			stopStreams()
@@ -268,7 +253,7 @@ export function EnhancedScrapingForm({ onSubmit, connectionVerified, onConnectio
 					{/* Website Selection */}
 					<div className="space-y-2">
 						<Label htmlFor="website-select">选择爬取接口</Label>
-						<Select onValueChange={(v) => (latestConfigs.length ? handleConfigSelect(v) : handleUrlSelect(v))} value={formData.websiteType}>
+						<Select onValueChange={(v) => handleConfigSelect(v)} value={formData.websiteType}>
 							<SelectTrigger>
 								<SelectValue placeholder={isLoadingConfigs ? "加载中..." : "选择要爬取的招聘网站"} />
 							</SelectTrigger>
@@ -284,25 +269,13 @@ export function EnhancedScrapingForm({ onSubmit, connectionVerified, onConnectio
 												</div>
 												<span className="text-xs text-muted-foreground">{config.target_url || config.api_config?.url}</span>
 											</div>
-										</SelectItem>
-									))
+										</SelectItem>)
+									)
 								) : (
-									supportedWebsites.map((website) => (
-										<SelectItem key={website.value} value={website.value}>
-											<div className="flex flex-col gap-1">
-												<div className="flex items-center gap-2">
-													<Badge variant="outline">{website.label}</Badge>
-												</div>
-												<span className="text-xs text-muted-foreground">{website.description}</span>
-											</div>
-										</SelectItem>
-									))
+									<div className="px-2 py-1 text-xs text-muted-foreground">暂无保存的爬取配置，请先在"API分析"中保存爬取模式</div>
 								)}
 							</SelectContent>
 						</Select>
-						{latestConfigs.length === 0 && !isLoadingConfigs && (
-							<p className="text-xs text-muted-foreground">暂无保存的爬取配置，请先在"API分析"中保存爬取模式</p>
-						)}
 					</div>
 
 					{/* URL / Request Sample */}

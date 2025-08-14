@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { appendLog } from "@/lib/logging/scrape-log"
 import { ScraperFactory } from "@/lib/scraper/scraper-factory"
-import { createClient as createSupabaseClient } from "@/lib/supabase/client"
+import { createSupabaseClient } from "@/lib/supabase/client"
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 获取当前用户
+    // 第一步：在平台库进行用户身份验证
     const supabase = await createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 从数据库获取用户的Supabase配置
+    // 第二步：从平台库读取用户默认的 Supabase 连接配置
     const { data: userConfig, error: configError } = await supabase
       .from("user_scraping_configs")
       .select("supabase_url, supabase_key")
@@ -34,18 +34,28 @@ export async function POST(request: NextRequest) {
       .eq("is_default", true)
       .maybeSingle()
 
-    if (configError || !userConfig) {
+    if (configError) {
+      console.error("Error fetching default config from platform:", configError)
       return NextResponse.json(
-        { error: "未找到Supabase配置，请先完成连接测试" },
+        { error: "Failed to fetch default config" },
+        { status: 500 }
+      )
+    }
+    
+    if (!userConfig) {
+      return NextResponse.json(
+        { error: "请先在 Supabase-Config 中配置并保存连接" },
         { status: 400 }
       )
     }
 
-    // 创建目标数据库的客户端
+    // 第三步：使用用户的 Supabase 配置创建客户端，准备写入用户自己的数据库
     const targetSupabase = createSupabaseClient(
       userConfig.supabase_url,
       userConfig.supabase_key
     )
+
+    console.log(`[Scrape] Starting scrape for user ${user.id}, website: ${websiteType}, target: ${userConfig.supabase_url}`)
 
     // 创建爬虫实例（若传入 apiConfig 则强制使用通用爬虫，确保严格按请求样例执行）
     let jobsResult: any
@@ -126,9 +136,24 @@ export async function POST(request: NextRequest) {
       // 没有 apiConfig 时，退回专用爬虫
       const scraper = ScraperFactory.createScraper({
         website_name: websiteType,
+        display_name: websiteType,
         base_url: targetUrl,
-        selectors: {},
-        pagination_config: null,
+        selectors: {
+          jobList: "div.job-item",
+          title: "h3.job-title",
+          department: "div.department",
+          location: "div.location",
+          experience: "div.experience",
+          salary: "div.salary",
+          description: "div.description",
+          requirements: "div.requirements",
+          benefits: "div.benefits",
+          skills: "div.skills",
+          publishTime: "div.publish-time",
+          companyName: "div.company-name",
+          jobType: "div.job-type"
+        },
+        pagination_config: undefined,
         rate_limit_ms: 1000,
         max_pages: maxPages,
       })
@@ -157,7 +182,7 @@ export async function POST(request: NextRequest) {
       console.warn("[Persist] No jobs parsed. Check dataPath/mapping and response structure.")
     }
 
-    // 保存爬取结果到目标数据库
+    // 保存爬取结果到用户自己的数据库
     const savedJobs = []
     let printedSample = false
     for (const job of jobs) {
@@ -220,9 +245,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 记录爬取任务
-    const mainSupabase = await createClient()
-    const { data: taskData, error: taskError } = await mainSupabase
+    // 记录爬取任务到平台库（用于统计和监控）
+    const { data: taskData, error: taskError } = await supabase
       .from("scraping_tasks")
       .insert([
         {
@@ -248,6 +272,8 @@ export async function POST(request: NextRequest) {
       console.error("记录爬取任务失败:", taskError)
     }
 
+    console.log(`[Scrape] Successfully scraped ${savedJobs.length}/${jobs.length} jobs for user ${user.id}`)
+
     return NextResponse.json({
       success: true,
       message: `成功爬取 ${savedJobs.length} 个职位`,
@@ -269,7 +295,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -281,7 +307,7 @@ export async function GET(request: NextRequest) {
       POST: "/api/scrape - Start API-based scraping (Authentication required)",
       GET: "/api/scraping-configs - Get supported website configurations",
     },
-    supported_websites: Object.keys(DEFAULT_SCRAPING_CONFIGS),
+    supported_websites: ["tencent", "bytedance", "alibaba"],
     scraping_method: "API",
     authentication: user ? "Authenticated" : "Not authenticated",
   }

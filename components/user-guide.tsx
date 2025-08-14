@@ -31,7 +31,7 @@ export function UserGuide() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
-            招聘数据爬虫平台使用指南
+            数据爬虫平台使用指南
           </DialogTitle>
           <DialogDescription>详细的使用说明和常见问题解答</DialogDescription>
         </DialogHeader>
@@ -66,118 +66,7 @@ export function UserGuide() {
                     </div>
                     <div className="w-full">
                       <h4 className="font-semibold">运行数据库脚本</h4>
-                      <p className="text-sm text-gray-600 mb-2">在 Supabase SQL 编辑器中执行以下建表与初始化脚本：</p>
-                      <div className="bg-gray-50 border rounded-md p-3 overflow-x-auto">
-                        <pre className="text-xs whitespace-pre-wrap break-all">{`
--- jobs（职位表）
-create table if not exists public.jobs (
-  id uuid primary key default gen_random_uuid(),
-  company_id uuid null,
-  title text not null,
-  department text null,
-  job_type text null,
-  experience_level text null,
-  location text null,
-  salary_min numeric null,
-  salary_max numeric null,
-  salary_currency text null,
-  salary_period text null,
-  description text null,
-  requirements text null,
-  benefits text null,
-  skills jsonb null,
-  status text null,
-  urgency_level text null,
-  contact_email text null,
-  contact_person text null,
-  original_url text not null,
-  source_website text not null,
-  external_job_id text null,
-  scraped_at timestamptz null,
-  last_updated_at timestamptz null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create index if not exists idx_jobs_source_website on public.jobs(source_website);
-create index if not exists idx_jobs_created_at on public.jobs(created_at desc);
-
--- scraping_tasks（任务表）
-create table if not exists public.scraping_tasks (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid null,
-  target_url text not null,
-  source_website text not null,
-  supabase_url text not null,
-  supabase_key text not null,
-  status text null,
-  progress int null,
-  total_jobs_found int null,
-  jobs_scraped int null,
-  jobs_updated int null,
-  jobs_failed int null,
-  error_message text null,
-  error_details jsonb null,
-  started_at timestamptz null,
-  completed_at timestamptz null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-
-CREATE TABLE IF NOT EXISTS scraping_configs (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  website_name VARCHAR(100) NOT NULL UNIQUE,
-  display_name VARCHAR(100) NOT NULL,
-  base_url TEXT NOT NULL,
-  
-  -- 爬取规则配置
-  selectors JSONB NOT NULL, -- CSS选择器配置
-  pagination_config JSONB, -- 分页配置
-  rate_limit_ms INTEGER DEFAULT 1000, -- 请求间隔毫秒
-  max_pages INTEGER DEFAULT 10, -- 最大爬取页数
-  
-  -- 状态
-  is_active BOOLEAN DEFAULT true,
-  
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-INSERT INTO "public"."scraping_configs" ("id", "website_name", "display_name", "base_url", "selectors", "pagination_config", "rate_limit_ms", "max_pages", "is_active", "created_at", "updated_at") VALUES ('21bf1e3b-0566-48a9-8cee-95ffa0ab82e2', 'bytedance', '字节招聘', 'https://jobs.bytedance.com/experienced/position?page=1', '{}', '{}', '1500', '15', 'true', '2025-08-13 03:48:18.82318+00', '2025-08-13 16:03:13.481099+00'), ('f3a5b9bd-8f25-4aea-8ca6-f5b38752ef69', 'tencent', '腾讯招聘', 'https://join.qq.com/post.html?page=2', '{}', '{}', '2000', '20', 'true', '2025-08-13 03:48:18.82318+00', '2025-08-13 16:03:41.220175+00');
-
--- 用户侧保存的配置 user_scraping_configs
-create table if not exists public.user_scraping_configs (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  config_name varchar not null,
-  target_url text not null,
-  website_type varchar not null,
-  supabase_url text not null,
-  supabase_key text not null,
-  api_config jsonb null,
-  is_default boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
--- 保证每个用户仅一条默认配置（避免 42P10 冲突）
-create unique index if not exists uq_user_default on public.user_scraping_configs(user_id, is_default) where is_default = true;
-
--- 可选：RLS 视项目需要调整
-alter table public.jobs enable row level security;
-alter table public.scraping_tasks enable row level security;
-alter table public.user_scraping_configs enable row level security;
-
--- 简化策略示例（按需修改或临时关闭 RLS）
-create policy if not exists jobs_read_all on public.jobs for select using (true);
-create policy if not exists jobs_write_all on public.jobs for insert with check (true);
-create policy if not exists tasks_read_all on public.scraping_tasks for select using (true);
-create policy if not exists tasks_write_all on public.scraping_tasks for insert with check (true);
-create policy if not exists cfg_read_own on public.user_scraping_configs for select using (auth.uid() = user_id);
-create policy if not exists cfg_write_own on public.user_scraping_configs for insert with check (auth.uid() = user_id);
-`}</pre>
-                      </div>
+                      <p className="text-sm text-gray-600 mb-2">在 Supabase SQL 编辑器中执行建表与初始化脚本：</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -358,14 +247,6 @@ create policy if not exists cfg_write_own on public.user_scraping_configs for in
         </Tabs>
 
         <div className="flex justify-between items-center pt-4 border-t">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Video className="h-4 w-4" />
-            <span>需要视频教程？</span>
-            <Button variant="link" size="sm" className="p-0 h-auto">
-              <ExternalLink className="h-3 w-3 mr-1" />
-              观看演示
-            </Button>
-          </div>
           <Button onClick={() => setOpen(false)}>关闭</Button>
         </div>
       </DialogContent>
