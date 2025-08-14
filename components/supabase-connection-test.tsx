@@ -263,7 +263,6 @@ ON CONFLICT (website_name) DO NOTHING;
       // 检查关键表
       const endpoints = [
         `${supabaseUrl}/rest/v1/jobs?select=id&limit=1`,
-        `${supabaseUrl}/rest/v1/scraping_tasks?select=id&limit=1`,
         `${supabaseUrl}/rest/v1/user_scraping_configs?select=id&limit=1`,
         `${supabaseUrl}/rest/v1/scraping_configs?select=website_name&limit=1`,
       ]
