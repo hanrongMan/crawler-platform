@@ -10,8 +10,10 @@ import Link from "next/link"
 import UserTaskHistory from "@/components/user-task-history"
 import UserUsageChart from "@/components/user-usage-chart"
 
+export const dynamic = "force-dynamic"
+
 export default async function DashboardPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

@@ -7,8 +7,10 @@ import { User, Mail, Calendar, Shield, Activity } from "lucide-react"
 import ProfileEditForm from "@/components/profile-edit-form"
 import PasswordChangeForm from "@/components/password-change-form"
 
+export const dynamic = "force-dynamic"
+
 export default async function ProfilePage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

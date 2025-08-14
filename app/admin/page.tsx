@@ -8,8 +8,10 @@ import UserManagementList from "@/components/user-management-list"
 import AdminStats from "@/components/admin-stats"
 import { Users, Clock, CheckCircle, XCircle } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+
 export default async function AdminPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

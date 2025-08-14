@@ -5,8 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Clock, Mail, CheckCircle } from "lucide-react"
 import { signOut } from "@/lib/actions"
 
+export const dynamic = "force-dynamic"
+
 export default async function PendingApprovalPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
